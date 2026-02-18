@@ -2,7 +2,7 @@ let apiUrl;
 const currentDomain = window.location.hostname;
 
 if (currentDomain === "localhost") {
-  apiUrl = "http://localhost:4000/api";
+  apiUrl = "https://api.chooseyourtherapist.in/api";
 } else {
   apiUrl = "https://api.chooseyourtherapist.in/api";
 }
