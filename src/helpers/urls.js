@@ -2,7 +2,7 @@ let apiUrl;
 const currentDomain = window.location.hostname;
 
 if (currentDomain === "localhost") {
-  apiUrl = "https://api.chooseyourtherapist.in/api";
+  apiUrl = "http://localhost:4000/api";
 } else {
   apiUrl = "https://api.chooseyourtherapist.in/api";
 }
@@ -21,3 +21,8 @@ export const verifyOtpUrl = `${apiUrl}/verify-otp`;
 export const ShowTOPageUrl = `${apiUrl}/toggle-to-show-to-page`;
 export const SetPriorityUrl = `${apiUrl}/set-priority`;
 export const UpdatePaymentStatusUrl = `${apiUrl}/update-payment-status`;
+export const deleteUserUrl = `${apiUrl}/delete-user`;
+export const createBlogUrl = `${apiUrl}/create-blog`;
+export const getBlogsUrl = `${apiUrl}/get-blogs`;
+export const updateBlogUrl = `${apiUrl}/update-blog/`; // ID will be appended
+export const deleteBlogUrl = `${apiUrl}/delete-blog/`; // ID will be appended

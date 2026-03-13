@@ -1,6 +1,5 @@
 import { getDecodedToken, setToken } from "../helpers/auth";
 import LazyImage from "../helpers/lazy-image";
-import logoImg from "../img/logo-white.png";
 import { postData } from "../helpers/actions";
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -21,7 +20,7 @@ export default function Login() {
       return;
     }
     const value = {
-      email,
+      email: email.trim(),
     };
 
     try {
@@ -52,8 +51,8 @@ export default function Login() {
       return;
     }
     const value = {
-      email,
-      otp,
+      email: email.trim(),
+      otp: otp.trim(),
     };
     console.log(value);
     try {
@@ -89,17 +88,25 @@ export default function Login() {
     }
   }, []);
   return (
-    <div className="main-wrapper login-body">
+    <div className="main-wrapper login-body green-theme">
       <div className="login-wrapper">
         <div className="container">
           <div className="loginbox">
             <div className="login-left">
-              <LazyImage className="img-fluid" src={logoImg} alt="Logo" />
+              <div className="founder-content">
+                <h2 className="text-white">Founder</h2>
+                <p className="text-white">Welcome to Choose Your Therapist</p>
+              </div>
             </div>
             <div className="login-right">
               <div className="login-right-wrap">
-                <h1>Login</h1>
-                <p className="account-subtitle">Access to dashboard</p>
+                <h1>Choose Your Therapist</h1>
+                <p className="account-subtitle">Login to your account</p>
+                <div className="mb-4">
+                  <a href="/" className="btn btn-outline-success btn-sm">
+                    <i className="fas fa-arrow-left me-2"></i> Go to Home
+                  </a>
+                </div>
 
                 {otpView ? (
                   <>

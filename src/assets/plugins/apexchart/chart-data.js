@@ -381,7 +381,7 @@ $(document).ready(function() {
 			name: 'Scheduled Appointment',
 			data: [1.6, 1.6, 1.5]
 		},{
-			name: 'Doctors Available Now',
+			name: 'Therapists Available Now',
 			data: [4, 2, 1.8]
 		},{
 			name: 'Home Visits',

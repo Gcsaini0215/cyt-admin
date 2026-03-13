@@ -9,7 +9,15 @@ import {
   Diversity3Outlined, 
   Diversity3Rounded,
   CalendarMonthOutlined, 
-  CalendarMonthRounded 
+  CalendarMonthRounded,
+  StarBorderOutlined,
+  StarRounded,
+  ReceiptLongOutlined,
+  ReceiptLongRounded,
+  CloudUploadOutlined,
+  CloudUploadRounded,
+  ArticleOutlined,
+  ArticleRounded
 } from "@mui/icons-material";
 
 export default function SideNav() {
@@ -41,29 +49,49 @@ export default function SideNav() {
       activeIcon: <CalendarMonthRounded />, 
       label: "Schedules" 
     },
+    { 
+      path: "/import-clients", 
+      icon: <CloudUploadOutlined />, 
+      activeIcon: <CloudUploadRounded />, 
+      label: "Import Clients" 
+    },
+    { 
+      path: "/reviews", 
+      icon: <StarBorderOutlined />, 
+      activeIcon: <StarRounded />, 
+      label: "Reviews" 
+    },
+    { 
+      path: "/invoices", 
+      icon: <ReceiptLongOutlined />, 
+      activeIcon: <ReceiptLongRounded />, 
+      label: "Invoices" 
+    },
+    { 
+      path: "/blogs", 
+      icon: <ArticleOutlined />, 
+      activeIcon: <ArticleRounded />, 
+      label: "Write Blog" 
+    },
   ];
-
-  // Calculate the active index for the sliding indicator
-  const activeIndex = menuItems.findIndex(item => item.path === currentPath);
 
   return (
     <>
       <style>{`
         .sidebar {
-          width: 90px;
-          background: #ffffff; /* Ultra Clean White */
+          width: 240px;
+          background: #ffffff;
           transition: all 0.4s ease;
           position: fixed;
           left: 0;
           top: 60px; 
           height: calc(100vh - 60px);
           z-index: 1000;
-          border-right: none; /* Border-less */
-          padding: 40px 0;
+          border-right: 1px solid #f1f5f9;
+          padding: 20px 0;
           display: flex;
           flex-direction: column;
-          align-items: center;
-          box-shadow: none; /* Pure minimalism, no shadow initially */
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
         }
 
         .sidebar-menu {
@@ -71,116 +99,65 @@ export default function SideNav() {
           position: relative;
         }
 
-        /* Liquid Sliding Indicator */
-        .sliding-indicator {
-          position: absolute;
-          left: 15px;
-          width: 60px;
-          height: 60px;
-          background: #f0f9ff; /* Very soft blue-tinted background */
-          border-radius: 20px;
-          transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-          z-index: 0;
-          top: ${activeIndex !== -1 ? (activeIndex * 85) : -100}px; /* Gap (25) + Icon size (60) = 85 */
-          display: ${activeIndex !== -1 ? 'block' : 'none'};
-          border: 1px solid rgba(14, 165, 233, 0.1);
-        }
-
         .sidebar-menu ul {
-          padding: 0;
+          padding: 0 15px;
           margin: 0;
           list-style: none;
           display: flex;
           flex-direction: column;
-          align-items: center;
-          gap: 25px; /* Clean spacing */
+          gap: 8px;
           position: relative;
           z-index: 1;
         }
 
         .sidebar-menu li {
           width: 100%;
+          position: relative;
           display: flex;
-          justify-content: center;
-          height: 60px; /* Consistent height for calculation */
         }
 
         .sidebar-menu li a {
-          width: 60px;
-          height: 60px;
           display: flex;
           align-items: center;
-          justify-content: center;
-          border-radius: 20px;
-          color: #94a3b8; /* Muted slate for non-active */
-          transition: all 0.3s ease;
+          width: 100%;
+          padding: 12px 15px;
+          border-radius: 12px;
+          color: #64748b;
+          transition: all 0.2s ease;
           text-decoration: none;
-          position: relative;
-          z-index: 2;
+          gap: 12px;
+          font-weight: 500;
         }
 
         .sidebar-menu li a svg {
-          font-size: 34px; /* Large, bold icons */
+          font-size: 24px;
         }
 
-        /* Hover: Outline to Solid transition hint */
+        .sidebar-menu li a span {
+          font-size: 15px;
+        }
+
         .sidebar-menu li a:hover {
-          color: #0ea5e9;
+          background: #f0fdf4;
+          color: #22c55e;
         }
 
         .sidebar-menu li.active a {
-          color: #0ea5e9; /* Professional Primary Blue */
-          /* No background here, handled by the sliding-indicator */
-        }
-
-        /* Small Active Dot Indicator */
-        .sidebar-menu li.active::after {
-          content: "";
-          position: absolute;
-          left: 0;
-          width: 4px;
-          height: 20px;
-          background: #0ea5e9;
-          border-radius: 0 4px 4px 0;
-          top: 20px;
-          transition: all 0.3s ease;
+          background: #22c55e;
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
         }
 
         .page-wrapper {
-          margin-left: 90px !important;
-          background-color: #fcfdfe; /* Softest blue-white background */
-          padding: 30px;
+          margin-left: 240px !important;
+          background-color: #f8fafc;
+          padding: 90px 30px 30px 30px;
           transition: all 0.4s ease;
-        }
-
-        /* Minimalist Tooltips */
-        .sidebar-menu li a::before {
-          content: attr(data-label);
-          position: absolute;
-          left: 75px;
-          background: #0f172a;
-          color: #fff;
-          padding: 8px 14px;
-          border-radius: 10px;
-          font-size: 13px;
-          font-weight: 500;
-          white-space: nowrap;
-          opacity: 0;
-          visibility: hidden;
-          transition: all 0.3s ease;
-          pointer-events: none;
-          transform: translateX(-5px);
-        }
-
-        .sidebar-menu li a:hover::before {
-          opacity: 1;
-          visibility: visible;
-          transform: translateX(0);
-          left: 85px;
+          min-height: 100vh;
         }
 
         @media (max-width: 991.98px) {
-          .sidebar { left: -90px; }
+          .sidebar { left: -240px; }
           .slide-nav .sidebar { left: 0; }
           .page-wrapper { margin-left: 0 !important; }
         }
@@ -189,12 +166,12 @@ export default function SideNav() {
       <div className="sidebar" id="sidebar">
         <div className="sidebar-inner">
           <div id="sidebar-menu" className="sidebar-menu">
-            <div className="sliding-indicator"></div>
             <ul>
               {menuItems.map((item, index) => (
                 <li key={index} className={currentPath === item.path ? "active" : ""}>
-                  <Link to={item.path} className="link" data-label={item.label}>
+                  <Link to={item.path} className="link">
                     {currentPath === item.path ? item.activeIcon : item.icon}
+                    <span>{item.label}</span>
                   </Link>
                 </li>
               ))}

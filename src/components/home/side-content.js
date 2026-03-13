@@ -1,272 +1,317 @@
 import LazyImage from "../../helpers/lazy-image";
+import React, { useEffect, useState } from "react";
+import { fetchById } from "../../helpers/actions";
+import { getTherapists, getUsersUrl, getBookings, imagePath } from "../../helpers/urls";
+import { formatDate, formatTime } from "../../helpers/times.js";
 
 export default function SideContent() {
+  const [data, setData] = useState({
+    therapists: [],
+    clients: [],
+    appointments: [],
+    monthlyRevenue: [],
+    counts: {
+      therapists: 0,
+      resumes: 0,
+      newResumes: 0,
+      clients: 0,
+      appointments: 0,
+      totalRevenue: 0
+    }
+  });
+  const [loading, setLoading] = useState(true);
+
+  // Helper to handle MongoDB Decimal128 or normal numbers
+  const formatCurrency = (value) => {
+    if (!value) return "0.00";
+    if (typeof value === 'object' && value.$numberDecimal) {
+      return parseFloat(value.$numberDecimal).toFixed(2);
+    }
+    return parseFloat(value).toFixed(2);
+  };
+
+  useEffect(() => {
+    const getAllDashboardData = async () => {
+      try {
+        setLoading(true);
+        const [therapistsRes, usersRes, bookingsRes] = await Promise.all([
+          fetchById(getTherapists),
+          fetchById(getUsersUrl),
+          fetchById(getBookings)
+        ]);
+
+        const therapistsList = therapistsRes.data || [];
+        const usersList = usersRes.data || [];
+        const bookingsList = bookingsRes.data || [];
+        
+        const therapistsWithResumes = therapistsList.filter(t => t.resume);
+        const resumesCount = therapistsWithResumes.length;
+        
+        // Calculate new resumes (those not in localStorage)
+        const viewedResumes = JSON.parse(localStorage.getItem('viewedResumes') || '[]');
+        const newResumesCount = therapistsWithResumes.filter(t => !viewedResumes.includes(t._id)).length;
+
+        // Process monthly revenue for chart
+        const monthlyRevenueMap = {};
+        let totalRev = 0;
+        
+        bookingsList.forEach(booking => {
+          const amount = parseFloat(booking.transaction?.amount || booking.amount || 0);
+          totalRev += amount;
+          
+          const date = new Date(booking.booking_date || booking.date);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          monthlyRevenueMap[monthKey] = (monthlyRevenueMap[monthKey] || 0) + amount;
+        });
+
+        const sortedMonths = Object.keys(monthlyRevenueMap).sort();
+        const monthlyRevenueData = sortedMonths.map(month => ({
+          y: month,
+          a: monthlyRevenueMap[month]
+        }));
+
+        // Extract unique therapists from appointments (bookings)
+        const uniqueTherapistsMap = new Map();
+        bookingsList.forEach(booking => {
+          const therapistId = booking.therapist?._id || booking.therapist_id;
+          if (therapistId && !uniqueTherapistsMap.has(therapistId)) {
+            uniqueTherapistsMap.set(therapistId, {
+              name: booking.therapist?.user?.name || booking.therapist_name,
+              image: booking.therapist?.user?.image || booking.therapist_image,
+              speciality: booking.therapist?.profile_type || booking.speciality || "Therapy",
+              earned: booking.transaction?.amount || booking.amount || 0
+            });
+          }
+        });
+        const therapistsFromAppointments = Array.from(uniqueTherapistsMap.values());
+
+        setData({
+          therapists: therapistsFromAppointments.slice(0, 5),
+          clients: usersList.slice(0, 5),
+          appointments: bookingsList.slice(0, 5),
+          monthlyRevenue: monthlyRevenueData,
+          counts: {
+            therapists: therapistsList.length,
+            resumes: resumesCount,
+            newResumes: newResumesCount,
+            clients: usersList.length,
+            appointments: bookingsList.length,
+            totalRevenue: totalRev
+          }
+        });
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getAllDashboardData();
+  }, []);
+
+  // Initialize Morris Chart
+  useEffect(() => {
+    if (loading || data.monthlyRevenue.length === 0) return;
+
+    let morrisChart = null;
+    let retryCount = 0;
+    const maxRetries = 10;
+
+    const initChart = () => {
+      const chartElement = document.getElementById('revenue-chart');
+      if (!chartElement) return;
+
+      if (window.Morris && typeof window.Morris.Area === 'function') {
+        chartElement.innerHTML = ''; // Clear previous chart
+        morrisChart = window.Morris.Area({
+          element: 'revenue-chart',
+          data: data.monthlyRevenue,
+          xkey: 'y',
+          ykeys: ['a'],
+          labels: ['Revenue'],
+          lineColors: ['#22c55e'],
+          lineWidth: 2,
+          fillOpacity: 0.1,
+          gridTextColor: '#64748b',
+          gridTextSize: 12,
+          gridTextWeight: '500',
+          hideHover: 'auto',
+          behaveLikeLine: true,
+          resize: true,
+          parseTime: false,
+          smooth: true
+        });
+      } else if (retryCount < maxRetries) {
+        retryCount++;
+        setTimeout(initChart, 500);
+      } else {
+        console.warn("Morris.js failed to load after multiple retries.");
+      }
+    };
+
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(initChart, 100);
+
+    return () => {
+      clearTimeout(timer);
+      if (morrisChart) {
+        const chartElement = document.getElementById('revenue-chart');
+        if (chartElement) chartElement.innerHTML = '';
+      }
+    };
+  }, [loading, data.monthlyRevenue]);
+
   return (
     <>
       <div className="content container-fluid">
-        <div className="page-header">
-          <div className="row">
-            <div className="col-sm-12">
-              <h3 className="page-title">Welcome Admin!</h3>
-              <ul className="breadcrumb">
-                <li className="breadcrumb-item active">Dashboard</li>
-              </ul>
+        {/* Stats Cards */}
+        <div className="row">
+          <div className="col-xl-3 col-sm-6 col-12">
+            <div className="card shadow-sm border-0">
+              <div className="card-body">
+                <div className="dash-widget-header">
+                  <span className="dash-widget-icon text-success border-success">
+                    <i className="fe fe-users"></i>
+                  </span>
+                  <div className="dash-count">
+                    <h3>{loading ? "..." : data.counts.therapists}</h3>
+                  </div>
+                </div>
+                <div className="dash-widget-info">
+                  <h6 className="text-muted">Total Therapists</h6>
+                  <div className="progress progress-sm">
+                    <div className="progress-bar bg-success w-100"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="col-xl-3 col-sm-6 col-12">
+            <div className="card shadow-sm border-0">
+              <div className="card-body">
+                <div className="dash-widget-header">
+                  <span className="dash-widget-icon text-success border-success">
+                    <i className="fe fe-file"></i>
+                  </span>
+                  <div className="dash-count">
+                    <div className="d-flex align-items-center gap-2">
+                      <h3>{loading ? "..." : data.counts.resumes}</h3>
+                      {!loading && data.counts.newResumes > 0 && (
+                        <span className="badge bg-danger rounded-pill" style={{ fontSize: '10px', marginTop: '-15px' }}>
+                          {data.counts.newResumes} New
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="dash-widget-info">
+                  <h6 className="text-muted">Resumes Received</h6>
+                  <div className="progress progress-sm">
+                    <div className="progress-bar bg-success w-100"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="col-xl-3 col-sm-6 col-12">
+            <div className="card shadow-sm border-0">
+              <div className="card-body">
+                <div className="dash-widget-header">
+                  <span className="dash-widget-icon text-success border-success">
+                    <i className="fe fe-credit-card"></i>
+                  </span>
+                  <div className="dash-count">
+                    <h3>{loading ? "..." : data.counts.clients}</h3>
+                  </div>
+                </div>
+                <div className="dash-widget-info">
+                  <h6 className="text-muted">Total Clients</h6>
+                  <div className="progress progress-sm">
+                    <div className="progress-bar bg-success w-100"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="col-xl-3 col-sm-6 col-12">
+            <div className="card shadow-sm border-0">
+              <div className="card-body">
+                <div className="dash-widget-header">
+                  <span className="dash-widget-icon text-success border-success">
+                    <i className="fe fe-money"></i>
+                  </span>
+                  <div className="dash-count">
+                    <h3>₹{loading ? "..." : formatCurrency(data.counts.totalRevenue)}</h3>
+                  </div>
+                </div>
+                <div className="dash-widget-info">
+                  <h6 className="text-muted">Total Revenue</h6>
+                  <div className="progress progress-sm">
+                    <div className="progress-bar bg-success w-100"></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Revenue Graph */}
         <div className="row">
-          <div className="col-xl-3 col-sm-6 col-12">
-            <div className="card">
-              <div className="card-body">
-                <div className="dash-widget-header">
-                  <span className="dash-widget-icon text-primary border-primary">
-                    <i className="fe fe-users"></i>
-                  </span>
-                  <div className="dash-count">
-                    <h3>168</h3>
-                  </div>
-                </div>
-                <div className="dash-widget-info">
-                  <h6 className="text-muted">Doctors</h6>
-                  <div className="progress progress-sm">
-                    <div className="progress-bar bg-primary w-50"></div>
-                  </div>
-                </div>
+          <div className="col-md-12">
+            <div className="card shadow-sm border-0 overflow-hidden">
+              <div className="card-header border-0 bg-transparent py-3">
+                <h4 className="card-title text-success mb-0">Revenue Analytics</h4>
               </div>
-            </div>
-          </div>
-          <div className="col-xl-3 col-sm-6 col-12">
-            <div className="card">
-              <div className="card-body">
-                <div className="dash-widget-header">
-                  <span className="dash-widget-icon text-success">
-                    <i className="fe fe-credit-card"></i>
-                  </span>
-                  <div className="dash-count">
-                    <h3>487</h3>
-                  </div>
-                </div>
-                <div className="dash-widget-info">
-                  <h6 className="text-muted">Patients</h6>
-                  <div className="progress progress-sm">
-                    <div className="progress-bar bg-success w-50"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="col-xl-3 col-sm-6 col-12">
-            <div className="card">
-              <div className="card-body">
-                <div className="dash-widget-header">
-                  <span className="dash-widget-icon text-danger border-danger">
-                    <i className="fe fe-money"></i>
-                  </span>
-                  <div className="dash-count">
-                    <h3>485</h3>
-                  </div>
-                </div>
-                <div className="dash-widget-info">
-                  <h6 className="text-muted">Appointment</h6>
-                  <div className="progress progress-sm">
-                    <div className="progress-bar bg-danger w-50"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="col-xl-3 col-sm-6 col-12">
-            <div className="card">
-              <div className="card-body">
-                <div className="dash-widget-header">
-                  <span className="dash-widget-icon text-warning border-warning">
-                    <i className="fe fe-folder"></i>
-                  </span>
-                  <div className="dash-count">
-                    <h3>$62523</h3>
-                  </div>
-                </div>
-                <div className="dash-widget-info">
-                  <h6 className="text-muted">Revenue</h6>
-                  <div className="progress progress-sm">
-                    <div className="progress-bar bg-warning w-50"></div>
-                  </div>
+              <div className="card-body pt-0">
+                <div id="revenue-chart" style={{ height: '300px' }}>
+                  {loading && <div className="d-flex align-items-center justify-content-center h-100">Loading chart...</div>}
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <div className="row">
-          <div className="col-md-12 col-lg-6">
-            <div className="card card-chart">
-              <div className="card-header">
-                <h4 className="card-title">Revenue</h4>
-              </div>
-              <div className="card-body">
-                <div id="morrisArea"></div>
-              </div>
-            </div>
-          </div>
-          <div className="col-md-12 col-lg-6">
-            <div className="card card-chart">
-              <div className="card-header">
-                <h4 className="card-title">Status</h4>
-              </div>
-              <div className="card-body">
-                <div id="morrisLine"></div>
-              </div>
-            </div>
-          </div>
-        </div>
+
+        {/* Therapist and Client Tables */}
         <div className="row">
           <div className="col-md-6 d-flex">
-            <div className="card card-table flex-fill">
-              <div className="card-header">
-                <h4 className="card-title">Doctors List</h4>
+            <div className="card card-table flex-fill shadow-sm border-0">
+              <div className="card-header border-0 bg-transparent">
+                <h4 className="card-title text-success">Therapists List</h4>
               </div>
               <div className="card-body">
                 <div className="table-responsive">
                   <table className="table table-hover table-center mb-0">
                     <thead>
                       <tr>
-                        <th>Doctor Name</th>
+                        <th>Therapist Name</th>
                         <th>Speciality</th>
                         <th>Earned</th>
                         <th>Reviews</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/doctors/doctor-thumb-01.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Dr. Ruby Perrin</a>
-                          </h2>
-                        </td>
-                        <td>Dental</td>
-                        <td>$3200.00</td>
-                        <td>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star-o text-secondary"></i>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/doctors/doctor-thumb-02.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Dr. Darren Elder</a>
-                          </h2>
-                        </td>
-                        <td>Dental</td>
-                        <td>$3100.00</td>
-                        <td>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star-o text-secondary"></i>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/doctors/doctor-thumb-03.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Dr. Deborah Angel</a>
-                          </h2>
-                        </td>
-                        <td>Cardiology</td>
-                        <td>$4000.00</td>
-                        <td>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star-o text-secondary"></i>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/doctors/doctor-thumb-04.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Dr. Sofia Brient</a>
-                          </h2>
-                        </td>
-                        <td>Urology</td>
-                        <td>$3200.00</td>
-                        <td>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star-o text-secondary"></i>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/doctors/doctor-thumb-05.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Dr. Marvin Campbell</a>
-                          </h2>
-                        </td>
-                        <td>Orthopaedics</td>
-                        <td>$3500.00</td>
-                        <td>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star text-warning"></i>
-                          <i className="fe fe-star-o text-secondary"></i>
-                        </td>
-                      </tr>
+                      {loading ? (
+                        <tr><td colSpan="4" className="text-center">Loading...</td></tr>
+                      ) : data.therapists.length > 0 ? (
+                        data.therapists.map((therapist, index) => (
+                          <tr key={index}>
+                            <td>
+                              <span className="fw-bold text-dark">{therapist.name}</span>
+                            </td>
+                            <td>{therapist.speciality}</td>
+                            <td>₹{formatCurrency(therapist.earned)}</td>
+                            <td>
+                              <i className="fe fe-star text-warning"></i>
+                              <i className="fe fe-star text-warning"></i>
+                              <i className="fe fe-star text-warning"></i>
+                              <i className="fe fe-star text-warning"></i>
+                              <i className="fe fe-star-o text-secondary"></i>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan="4" className="text-center">No therapists found</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -274,122 +319,38 @@ export default function SideContent() {
             </div>
           </div>
           <div className="col-md-6 d-flex">
-            <div className="card  card-table flex-fill">
-              <div className="card-header">
-                <h4 className="card-title">Patients List</h4>
+            <div className="card card-table flex-fill shadow-sm border-0">
+              <div className="card-header border-0 bg-transparent">
+                <h4 className="card-title text-success">Clients List</h4>
               </div>
               <div className="card-body">
                 <div className="table-responsive">
                   <table className="table table-hover table-center mb-0">
                     <thead>
                       <tr>
-                        <th>Patient Name</th>
+                        <th>Client Name</th>
                         <th>Phone</th>
                         <th>Last Visit</th>
                         <th>Paid</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <LazyImage
-                                className="avatar-img rounded-circle"
-                                src="assets/img/patients/patient1.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Charlene Reed </a>
-                          </h2>
-                        </td>
-                        <td>8286329170</td>
-                        <td>20 Oct 2023</td>
-                        <td>$100.00</td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <LazyImage
-                                className="avatar-img rounded-circle"
-                                src="assets/img/patients/patient2.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Travis Trimble </a>
-                          </h2>
-                        </td>
-                        <td>2077299974</td>
-                        <td>22 Oct 2023</td>
-                        <td>$200.00</td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/patients/patient3.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Carl Kelly</a>
-                          </h2>
-                        </td>
-                        <td>2607247769</td>
-                        <td>21 Oct 2023</td>
-                        <td>$250.00</td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/patients/patient4.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html"> Michelle Fairfax</a>
-                          </h2>
-                        </td>
-                        <td>5043686874</td>
-                        <td>21 Sep 2023</td>
-                        <td>$150.00</td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/patients/patient5.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Gina Moore</a>
-                          </h2>
-                        </td>
-                        <td>9548207887</td>
-                        <td>18 Sep 2023</td>
-                        <td>$350.00</td>
-                      </tr>
+                      {loading ? (
+                        <tr><td colSpan="4" className="text-center">Loading...</td></tr>
+                      ) : data.clients.length > 0 ? (
+                        data.clients.map((client, index) => (
+                          <tr key={index}>
+                            <td>
+                              <span className="fw-bold text-dark">{client.name}</span>
+                            </td>
+                            <td>{client.phone || "N/A"}</td>
+                            <td>{client.last_visit || "N/A"}</td>
+                            <td>₹{formatCurrency(client.paid)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan="4" className="text-center">No clients found</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -397,291 +358,61 @@ export default function SideContent() {
             </div>
           </div>
         </div>
+
+        {/* Appointment List */}
         <div className="row">
           <div className="col-md-12">
-            <div className="card card-table">
-              <div className="card-header">
-                <h4 className="card-title">Appointment List</h4>
+            <div className="card card-table shadow-sm border-0">
+              <div className="card-header border-0 bg-transparent">
+                <h4 className="card-title text-success">Appointment List</h4>
               </div>
               <div className="card-body">
                 <div className="table-responsive">
                   <table className="table table-hover table-center mb-0">
                     <thead>
                       <tr>
-                        <th>Doctor Name</th>
+                        <th>Therapist Name</th>
                         <th>Speciality</th>
-                        <th>Patient Name</th>
-                        <th>Apointment Time</th>
+                        <th>Client Name</th>
+                        <th>Appointment Time</th>
                         <th>Status</th>
                         <th>Amount</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/doctors/doctor-thumb-01.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Dr. Ruby Perrin</a>
-                          </h2>
-                        </td>
-                        <td>Dental</td>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/patients/patient1.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Charlene Reed </a>
-                          </h2>
-                        </td>
-                        <td>
-                          9 Nov 2023{" "}
-                          <span className="text-success d-block">
-                            11.00 AM - 11.15 AM
-                          </span>
-                        </td>
-                        <td>
-                          <div className="status-toggle">
-                            <input
-                              type="checkbox"
-                              id="status_1"
-                              className="check"
-                              checked
-                            />
-                            <label for="status_1" className="checktoggle">
-                              checkbox
-                            </label>
-                          </div>
-                        </td>
-                        <td>$200.00</td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/doctors/doctor-thumb-02.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Dr. Darren Elder</a>
-                          </h2>
-                        </td>
-                        <td>Dental</td>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/patients/patient2.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Travis Trimble </a>
-                          </h2>
-                        </td>
-                        <td>
-                          5 Nov 2023{" "}
-                          <span className="text-success d-block">
-                            11.00 AM - 11.35 AM
-                          </span>
-                        </td>
-                        <td>
-                          <div className="status-toggle">
-                            <input
-                              type="checkbox"
-                              id="status_2"
-                              className="check"
-                              checked
-                            />
-                            <label for="status_2" className="checktoggle">
-                              checkbox
-                            </label>
-                          </div>
-                        </td>
-                        <td>$300.00</td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/doctors/doctor-thumb-03.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Dr. Deborah Angel</a>
-                          </h2>
-                        </td>
-                        <td>Cardiology</td>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/patients/patient3.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Carl Kelly</a>
-                          </h2>
-                        </td>
-                        <td>
-                          11 Nov 2023{" "}
-                          <span className="text-success d-block">
-                            12.00 PM - 12.15 PM
-                          </span>
-                        </td>
-                        <td>
-                          <div className="status-toggle">
-                            <input
-                              type="checkbox"
-                              id="status_3"
-                              className="check"
-                              checked
-                            />
-                            <label for="status_3" className="checktoggle">
-                              checkbox
-                            </label>
-                          </div>
-                        </td>
-                        <td>$150.00</td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/doctors/doctor-thumb-04.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Dr. Sofia Brient</a>
-                          </h2>
-                        </td>
-                        <td>Urology</td>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/patients/patient4.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html"> Michelle Fairfax</a>
-                          </h2>
-                        </td>
-                        <td>
-                          7 Nov 2023
-                          <span className="text-success d-block">
-                            1.00 PM - 1.20 PM
-                          </span>
-                        </td>
-                        <td>
-                          <div className="status-toggle">
-                            <input
-                              type="checkbox"
-                              id="status_4"
-                              className="check"
-                              checked
-                            />
-                            <label for="status_4" className="checktoggle">
-                              checkbox
-                            </label>
-                          </div>
-                        </td>
-                        <td>$150.00</td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/doctors/doctor-thumb-05.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Dr. Marvin Campbell</a>
-                          </h2>
-                        </td>
-                        <td>Orthopaedics</td>
-                        <td>
-                          <h2 className="table-avatar">
-                            <a
-                              href="profile.html"
-                              className="avatar avatar-sm me-2"
-                            >
-                              <img
-                                className="avatar-img rounded-circle"
-                                src="assets/img/patients/patient5.jpg"
-                                alt="User"
-                              />
-                            </a>
-                            <a href="profile.html">Gina Moore</a>
-                          </h2>
-                        </td>
-                        <td>
-                          15 Nov 2023{" "}
-                          <span className="text-success d-block">
-                            1.00 PM - 1.15 PM
-                          </span>
-                        </td>
-                        <td>
-                          <div className="status-toggle">
-                            <input
-                              type="checkbox"
-                              id="status_5"
-                              className="check"
-                              checked
-                            />
-                            <label for="status_5" className="checktoggle">
-                              checkbox
-                            </label>
-                          </div>
-                        </td>
-                        <td>$200.00</td>
-                      </tr>
+                      {loading ? (
+                        <tr><td colSpan="6" className="text-center">Loading...</td></tr>
+                      ) : data.appointments.length > 0 ? (
+                        data.appointments.map((booking, index) => (
+                          <tr key={index}>
+                            <td>
+                              <span className="fw-bold text-dark">
+                                {booking.therapist?.user?.name || booking.therapist_name || "N/A"}
+                              </span>
+                            </td>
+                            <td>{booking.therapist?.profile_type || booking.speciality || "Therapy"}</td>
+                            <td>
+                              <span className="text-muted">
+                                {booking.client?.name || booking.user_name || "N/A"}
+                              </span>
+                            </td>
+                            <td>
+                              {formatDate(booking.booking_date || booking.date)}{" "}
+                              <span className="text-success d-block">
+                                {formatTime(booking.booking_date || booking.date)}
+                              </span>
+                            </td>
+                            <td>
+                              <span className={`badge ${booking.status?.toLowerCase() === 'completed' ? 'bg-soft-success text-success' : 'bg-soft-warning text-warning'} px-2 py-1`} style={{ fontSize: '11px' }}>
+                                {booking.status?.toUpperCase() || "PENDING"}
+                              </span>
+                            </td>
+                            <td>₹{formatCurrency(booking.transaction?.amount || booking.amount)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan="6" className="text-center">No appointments found</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -690,6 +421,10 @@ export default function SideContent() {
           </div>
         </div>
       </div>
+      <style>{`
+        .bg-soft-success { background-color: #ecfdf5; color: #10b981; }
+        .bg-soft-warning { background-color: #fffbeb; color: #d97706; }
+      `}</style>
     </>
   );
 }

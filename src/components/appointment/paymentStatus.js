@@ -6,12 +6,17 @@ import { UpdatePaymentStatusUrl } from "../../helpers/urls";
 const styles = {
     selectStyle: {
         lineHeight: "20px",
-        height: "45x",
-        width:"180px"
+        height: "35px",
+        width:"100%",
+        borderRadius: "8px",
+        border: "1px solid #e2e8f0",
+        padding: "0 8px",
+        fontSize: "12px",
+        color: "#475569",
+        backgroundColor: "#fff"
     },
 };
 export default function PaymentStatusWidget({ item, statusList }) {
-    console.log("paymentt",item);
     const [paymentStatus, setPaymentStatus] = React.useState(item.transaction?.status?._id);
     const [loading, setLoading] = React.useState(false);
 
@@ -44,14 +49,14 @@ export default function PaymentStatusWidget({ item, statusList }) {
 
     };
 
-    return <div className="col-md-6 col-12 mb--20">
-        <span style={{fontSize:"13px"}}>{item.transaction._id}</span>
-        <br/>
+    return <div className="d-flex flex-column align-items-center">
+        <span style={{fontSize:"11px", color: "#64748b"}} className="mb-1">{item.transaction._id}</span>
         <select
             style={styles.selectStyle}
             value={paymentStatus}
             onChange={handleStatusChange}
             disabled={loading}
+            className="form-select form-select-sm"
         >
             {statusList && statusList.map((status) => {
                 return (

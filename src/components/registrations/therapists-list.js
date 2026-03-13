@@ -11,22 +11,12 @@ import {
   Typography, 
   Modal, 
   CircularProgress,
-  Tooltip,
   IconButton,
   Chip
 } from "@mui/material";
 import { 
-  Email, 
-  Phone, 
-  Description, 
-  Send, 
-  CheckCircle, 
-  Pending, 
-  Visibility, 
-  MoreVert,
-  Info
+  MoreVert
 } from "@mui/icons-material";
-import { truncateString } from "../../helpers/string-concate";
 import ActiveInactiveSwitch from "./ActiveInactiveSwitch";
 import { fetchById } from "../../helpers/actions";
 import { toast } from "react-toastify";
@@ -51,11 +41,6 @@ export default function TherapistLists() {
   const [loadingModal, setLoadingModal] = React.useState(false);
   const [loadingId, setLoadingId] = React.useState();
   const [service, setSerice] = React.useState("");
-
-  const handleOpen = (service) => {
-    setSerice(service);
-    setOpen(true);
-  };
 
   const handleClose = () => setOpen(false);
   
@@ -112,143 +97,115 @@ export default function TherapistLists() {
 
   return (
     <div className="content container-fluid">
-      {/* Header */}
-      <div className="page-header mb-4">
+      <div className="page-header mb-3">
         <div className="row align-items-center">
           <div className="col">
-            <h3 className="page-title fw-bold text-dark">Therapist Approvals</h3>
-            <p className="text-muted mb-0 mt-1">Review, verify, and approve newly registered therapists.</p>
+            <h4 className="page-title fw-bold text-dark mb-0">Therapist Approvals</h4>
           </div>
           <div className="col-auto">
-            <div className="d-flex gap-2">
-              <Chip label={`Pending: ${data.filter(i => !i.user?.is_verified).length}`} color="warning" variant="outlined" />
-              <Chip label={`Approved: ${data.filter(i => i.user?.is_verified).length}`} color="success" variant="outlined" />
+            <div className="d-flex gap-2 align-items-center">
+              <Chip size="small" label={`Pending: ${data.filter(i => !i.user?.is_verified).length}`} color="warning" sx={{ height: 24, fontSize: '11px' }} />
+              <Chip size="small" label={`Approved: ${data.filter(i => i.user?.is_verified).length}`} color="success" sx={{ height: 24, fontSize: '11px' }} />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Table Card */}
-      <div className="card border-0 shadow-sm overflow-hidden">
+      <div className="card border-0 shadow-sm">
         <div className="card-body p-0">
-          <div className="table-responsive">
+          <div className="table-responsive custom-scrollbar" style={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto' }}>
             <table className="table table-hover align-middle mb-0 custom-approval-table">
-              <thead className="bg-light-gray">
+              <thead className="sticky-top" style={{ zIndex: 10, backgroundColor: '#22c55e' }}>
                 <tr>
-                  <th className="ps-4 py-3 border-0 text-muted fw-semibold small text-uppercase">Therapist Info</th>
-                  <th className="py-3 border-0 text-muted fw-semibold small text-uppercase">Specialization</th>
-                  <th className="py-3 border-0 text-muted fw-semibold small text-uppercase text-center">Resume</th>
-                  <th className="py-3 border-0 text-muted fw-semibold small text-uppercase text-center">Visibility</th>
-                  <th className="py-3 border-0 text-muted fw-semibold small text-uppercase text-center">Communication</th>
-                  <th className="py-3 border-0 text-muted fw-semibold small text-uppercase">Priority</th>
-                  <th className="py-3 border-0 text-muted fw-semibold small text-uppercase text-center">Status</th>
-                  <th className="pe-4 py-3 border-0 text-muted fw-semibold small text-uppercase text-end">Action</th>
+                  <th className="ps-3 py-3 border-bottom text-white fw-bold text-uppercase" style={{ fontSize: '12px' }}>Therapist</th>
+                  <th className="py-3 border-bottom text-white fw-bold text-uppercase" style={{ fontSize: '12px' }}>Specialization</th>
+                  <th className="py-3 border-bottom text-white fw-bold text-uppercase text-center" style={{ fontSize: '12px' }}>Resume</th>
+                  <th className="py-3 border-bottom text-white fw-bold text-uppercase text-center" style={{ fontSize: '12px' }}>Visible</th>
+                  <th className="py-3 border-bottom text-white fw-bold text-uppercase text-center" style={{ fontSize: '12px' }}>Mail</th>
+                  <th className="py-3 border-bottom text-white fw-bold text-uppercase" style={{ fontSize: '12px' }}>Priority</th>
+                  <th className="py-3 border-bottom text-white fw-bold text-uppercase text-center" style={{ fontSize: '12px' }}>Status</th>
+                  <th className="pe-3 py-3 border-bottom text-white fw-bold text-uppercase text-end" style={{ fontSize: '12px' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {data && data.length > 0 ? (
                   data.map((item) => (
-                    <tr key={item._id} className="border-bottom-faint">
-                      <td className="ps-4 py-4">
+                    <tr key={item._id}>
+                      <td className="ps-3 py-2">
                         <div className="d-flex flex-column">
-                          <span className="fw-bold text-dark h6 mb-1">{item.user?.name}</span>
-                          <span className="text-muted small d-flex align-items-center gap-1">
-                            <Email fontSize="inherit" /> {item.user?.email}
-                          </span>
-                          <span className="text-muted small d-flex align-items-center gap-1 mt-1">
-                            <Phone fontSize="inherit" /> {item.user?.phone}
-                          </span>
+                          <span className="fw-bold text-dark mb-0" style={{ fontSize: '14px' }}>{item.user?.name}</span>
+                          <span className="text-dark fw-semibold" style={{ fontSize: '12px' }}>{item.user?.phone}</span>
+                          <span className="text-muted" style={{ fontSize: '12px' }}>{item.user?.email}</span>
                         </div>
                       </td>
-                      <td className="py-4">
-                        <div className="d-flex flex-column">
-                          <span className="badge bg-soft-info text-info rounded-pill px-3 py-1 mb-2 w-fit">
-                            {item.profile_type}
-                          </span>
-                          <span 
-                            className="text-muted small cursor-pointer text-decoration-underline"
-                            onClick={() => handleOpen(item.serve_type)}
-                          >
-                            {truncateString(item.serve_type)} <Info fontSize="inherit" />
-                          </span>
-                        </div>
+                      <td className="py-2">
+                        <span className="badge bg-soft-success text-success px-2 py-1" style={{ fontSize: '12px' }}>
+                          {item.profile_type}
+                        </span>
                       </td>
-                      <td className="py-4 text-center">
+                      <td className="py-2 text-center">
                         <a 
                           href={`${resumePath}/${item.resume}`} 
                           target="_blank" 
                           rel="noreferrer"
-                          className="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                          className="btn btn-sm btn-outline-success py-1 px-2"
+                          style={{ fontSize: '12px' }}
+                          onClick={() => {
+                            const viewed = JSON.parse(localStorage.getItem('viewedResumes') || '[]');
+                            if (!viewed.includes(item._id)) {
+                              viewed.push(item._id);
+                              localStorage.setItem('viewedResumes', JSON.stringify(viewed));
+                            }
+                          }}
                         >
-                          <Description fontSize="small" className="me-1" /> View
+                          View
                         </a>
                       </td>
-                      <td className="py-4 text-center">
-                        <div className="d-flex justify-content-center">
+                      <td className="py-2 text-center">
+                        <div className="d-flex justify-content-center scale-90">
                           <ActiveInactiveSwitch value={item.show_to_page} id={item._id} />
                         </div>
-                        <span className="extra-small text-muted mt-1 d-block">Public Listing</span>
                       </td>
-                      <td className="py-4 text-center">
-                        <div className="d-flex flex-column align-items-center">
-                          {item.is_mail_sent === 1 ? (
-                            <span className="text-success small fw-semibold mb-2">
-                              <CheckCircle fontSize="inherit" /> Mail Sent
-                            </span>
-                          ) : (
-                            <span className="text-danger small fw-semibold mb-2">
-                              <Pending fontSize="inherit" /> No Mail
-                            </span>
-                          )}
-                          <button 
-                            className={`btn btn-sm ${loading && loadingId === item._id ? 'btn-light' : 'btn-outline-primary'} rounded-pill px-3`}
-                            onClick={() => sendMail(item._id)}
-                            disabled={loading}
-                          >
-                            {loading && loadingId === item._id ? (
-                              <CircularProgress size={14} className="me-1" />
-                            ) : (
-                              <Send fontSize="inherit" className="me-1" />
-                            )}
-                            Resend
-                          </button>
+                      <td className="py-2 text-center">
+                        <button 
+                          className={`btn btn-sm ${loading && loadingId === item._id ? 'btn-light' : (item.is_mail_sent === 1 ? 'btn-soft-success' : 'btn-outline-success')} py-1 px-2`}
+                          style={{ fontSize: '12px' }}
+                          onClick={() => sendMail(item._id)}
+                          disabled={loading}
+                        >
+                          {loading && loadingId === item._id ? <CircularProgress size={12} /> : (item.is_mail_sent === 1 ? 'Sent' : 'Send')}
+                        </button>
+                      </td>
+                      <td className="py-2">
+                        <div className="scale-90 transform-origin-left">
+                          <PriorityDropdown value={item.priority} id={item._id} />
                         </div>
                       </td>
-                      <td className="py-4">
-                        <PriorityDropdown value={item.priority} id={item._id} />
-                      </td>
-                      <td className="py-4 text-center">
+                      <td className="py-2 text-center">
                         {item.user?.is_verified ? (
-                          <span className="badge bg-soft-success text-success px-3 py-2 rounded-pill fw-bold">
-                            <CheckCircle fontSize="inherit" className="me-1" /> APPROVED
-                          </span>
+                          <span className="text-success fw-bold" style={{ fontSize: '12px' }}>APPROVED</span>
                         ) : (
-                          <span className="badge bg-soft-danger text-danger px-3 py-2 rounded-pill fw-bold">
-                            <Pending fontSize="inherit" className="me-1" /> PENDING
-                          </span>
+                          <span className="text-danger fw-bold" style={{ fontSize: '12px' }}>PENDING</span>
                         )}
                       </td>
-                      <td className="pe-4 py-4 text-end">
+                      <td className="pe-3 py-2 text-end">
                         {!item.user?.is_verified ? (
                           <button 
-                            className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm"
+                            className="btn btn-success btn-sm py-1 px-3 fw-bold"
+                            style={{ fontSize: '12px' }}
                             onClick={() => aproveProfile(item.user?._id)}
                           >
-                            Approve Now
+                            Approve
                           </button>
                         ) : (
-                          <IconButton size="small">
-                            <MoreVert />
-                          </IconButton>
+                          <IconButton size="small" sx={{ p: 0 }}><MoreVert sx={{ fontSize: 20 }} /></IconButton>
                         )}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" className="text-center py-5">
-                      <div className="text-muted">No therapists found for approval.</div>
-                    </td>
+                    <td colSpan="8" className="text-center py-4 text-muted small">No pending approvals.</td>
                   </tr>
                 )}
               </tbody>
@@ -256,8 +213,6 @@ export default function TherapistLists() {
           </div>
         </div>
       </div>
-
-      {/* Service Type Modal */}
       <Modal open={open} onClose={handleClose}>
         <Box sx={style}>
           <div className="d-flex justify-content-between align-items-center mb-3">
@@ -272,10 +227,9 @@ export default function TherapistLists() {
         </Box>
       </Modal>
 
-      {/* Loading Modal */}
       <Modal open={loadingModal}>
         <Box sx={{ ...style, width: 300, textAlign: 'center' }}>
-          <CircularProgress color="primary" className="mb-3" />
+          <CircularProgress color="success" className="mb-3" />
           <Typography variant="h6">Processing Approval...</Typography>
           <Typography variant="body2" className="text-muted">Please wait while we verify the account.</Typography>
         </Box>
@@ -286,11 +240,24 @@ export default function TherapistLists() {
         .bg-soft-success { background-color: #ecfdf5; color: #10b981; }
         .bg-soft-danger { background-color: #fef2f2; color: #ef4444; }
         .bg-soft-info { background-color: #eff6ff; color: #3b82f6; }
-        .extra-small { font-size: 11px; }
+        .btn-soft-success { background-color: #ecfdf5; color: #10b981; border: 1px solid #10b981; }
+        .extra-small { font-size: 10px; }
         .cursor-pointer { cursor: pointer; }
         .border-bottom-faint { border-bottom: 1px solid rgba(0,0,0,0.03); }
-        .custom-approval-table tbody tr:hover { background-color: #fbfcfe; transition: all 0.2s; }
+        .custom-approval-table tbody tr:hover { background-color: #fbfcfe; transition: all 0.2s; cursor: pointer; }
         .w-fit { width: fit-content; }
+        .scale-75 { transform: scale(0.75); }
+        .scale-90 { transform: scale(0.9); }
+        .transform-origin-left { transform-origin: left; }
+        .btn-xs { padding: 1px 6px; font-size: 10px; line-height: 1.5; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #999; }
+        .btn-success { background-color: #22c55e; border-color: #22c55e; }
+        .btn-success:hover { background-color: #16a34a; border-color: #16a34a; }
+        .btn-outline-success { color: #22c55e; border-color: #22c55e; }
+        .btn-outline-success:hover { background-color: #22c55e; color: #fff; }
       `}</style>
     </div>
   );

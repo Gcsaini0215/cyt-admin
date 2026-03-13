@@ -1,7 +1,7 @@
 import React from "react";
 import SideNav from "./sidenav";
 import { Link } from "react-router-dom";
-import LogoImg from "../../src/assets/img/logo.png";
+import LogoImg from "../assets/img/logo.png";
 import SmallLogoImg from "../assets/img/logo-small.png";
 export default function MainLayout(props) {
   const [open, setOpen] = React.useState(false);
@@ -11,36 +11,80 @@ export default function MainLayout(props) {
   };
   return (
     <div className={open === true ? "main-wrapper slide-nav" : "main-wrapper"}>
+      <style>{`
+        .header {
+          background: #ffffff;
+          border-bottom: 1px solid #f1f5f9;
+          height: 60px;
+          z-index: 1001;
+        }
+
+        .header-left {
+          width: 240px;
+          background: #ffffff;
+          height: 60px;
+          padding: 0 20px;
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          transition: all 0.4s ease;
+          border-right: 1px solid #f1f5f9;
+        }
+
+        .header-left .logo {
+          display: flex;
+          align-items: center;
+          text-decoration: none;
+        }
+
+        .header-left .logo .logo-text {
+          font-family: 'Poppins', sans-serif;
+          font-size: 20px;
+          font-weight: 800;
+          letter-spacing: -1px;
+          white-space: nowrap;
+          display: flex;
+          align-items: center;
+        }
+
+        .header-left .logo .logo-text .brand-first {
+          color: #22c55e;
+        }
+
+        .header-left .logo .logo-text .brand-second {
+          color: #1e293b;
+          margin-left: 4px;
+        }
+
+        .top-nav-search, #toggle_btn, #mobile_btn, .mobile_btn {
+          display: none !important;
+        }
+
+        .user-menu .nav-link {
+          color: #64748b;
+          font-size: 18px;
+        }
+
+        .user-menu .badge {
+          background-color: #22c55e;
+        }
+
+        @media (max-width: 991.98px) {
+          .header-left {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+      `}</style>
       <div className="header">
         <div className="header-left">
           <Link to={"/home"} className="logo">
-            <img src={LogoImg} alt="Logo" />
-          </Link>
-          <Link to={"/home"} className="logo logo-small">
-            <img src={SmallLogoImg} alt="Logo" width="30" height="30" />
+            <div className="logo-text">
+              <span className="brand-first">CHOOSE YOUR</span>
+              <span className="brand-second">THERAPIST</span>
+            </div>
           </Link>
         </div>
-
-        <Link id="toggle_btn">
-          <i className="fe fe-text-align-left"></i>
-        </Link>
-
-        <div className="top-nav-search">
-          <form>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Search here"
-            />
-            <button className="btn" type="submit">
-              <i className="fa fa-search"></i>
-            </button>
-          </form>
-        </div>
-
-        <a className="mobile_btn" id="mobile_btn" onClick={handleMenuClick}>
-          <i className="fa fa-bars"></i>
-        </a>
 
         <ul className="nav user-menu">
           <li className="nav-item dropdown noti-dropdown">
@@ -170,32 +214,18 @@ export default function MainLayout(props) {
             </div>
           </li>
 
-          <li className="nav-item dropdown has-arrow">
+          <li className="nav-item dropdown">
             <a
               href="#"
-              className="dropdown-toggle nav-link"
+              className="nav-link"
               data-bs-toggle="dropdown"
             >
-              <span className="user-img">
-                <img
-                  className="rounded-circle"
-                  src="assets/img/profiles/avatar-01.jpg"
-                  width="31"
-                  alt="Ryan Taylor"
-                />
-              </span>
+              <span className="text-success fw-bold">Admin</span>
             </a>
             <div className="dropdown-menu">
               <div className="user-header">
-                <div className="avatar avatar-sm">
-                  <img
-                    src="assets/img/profiles/avatar-01.jpg"
-                    alt="User Image"
-                    className="avatar-img rounded-circle"
-                  />
-                </div>
                 <div className="user-text">
-                  <h6>Ryan Taylor</h6>
+                  <h6>Admin</h6>
                   <p className="text-muted mb-0">Administrator</p>
                 </div>
               </div>

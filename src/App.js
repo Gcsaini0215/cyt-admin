@@ -13,12 +13,10 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Reviews from "./pages/reviews";
 import Invoice from "./pages/invoice";
-import Plan from "./pages/plans";
 import Blogs from "./pages/blogs";
-import Course from "./pages/course";
 import ClientRegistration from "./pages/clientregistraion";
+import ImportClients from "./components/client/importClients";
 import TherapistRegistration from "./pages/therapistregistration";
-import BlogContainerPage from "./pages/blogContainer";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const theme = createTheme();
@@ -49,6 +47,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ClientRegistration />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              exact
+              path="/import-clients"
+              element={
+                <ProtectedRoute>
+                  <ImportClients />
                 </ProtectedRoute>
               }
             />
@@ -115,40 +123,10 @@ function App() {
 
             <Route
               exact
-              path="/plans"
-              element={
-                <ProtectedRoute>
-                  <Plan />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              exact
               path="/blogs"
               element={
                 <ProtectedRoute>
                   <Blogs />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              exact
-              path="/courses"
-              element={
-                <ProtectedRoute>
-                  <Course />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              exact
-              path="/blogContainer"
-              element={
-                <ProtectedRoute>
-                  <BlogContainerPage />
                 </ProtectedRoute>
               }
             />

@@ -76,7 +76,53 @@
     url(../fonts/MaterialIcons-Regular.ttf) format("truetype");
 }
 .primary {
-  background-color: #00d0f1;
+  background-color: #22c55e;
+}
+.btn-primary {
+  background-color: #22c55e !important;
+  border-color: #22c55e !important;
+}
+.btn-primary:hover {
+  background-color: #16a34a !important;
+  border-color: #16a34a !important;
+}
+.text-primary {
+  color: #22c55e !important;
+}
+.bg-primary {
+  background-color: #22c55e !important;
+}
+.badge-primary {
+  background-color: #22c55e !important;
+}
+.sidebar-menu li.active a {
+  background: #22c55e !important;
+}
+.dash-widget-icon {
+  border-color: #22c55e !important;
+  color: #22c55e !important;
+}
+.progress-bar {
+  background-color: #22c55e !important;
+}
+.text-success {
+  color: #22c55e !important;
+}
+.bg-success {
+  background-color: #22c55e !important;
+}
+* {
+  user-select: none;
+  cursor: default;
+}
+a, button, input[type="button"], input[type="submit"], .btn, [role="button"], .link, .sidebar-menu li a {
+  cursor: pointer;
+}
+input, textarea, [contenteditable="true"], .table, .table *, .selectable, .MuiInputBase-input, .MuiTextField-root * {
+  user-select: text !important;
+}
+input[type="text"], input[type="password"], input[type="email"], input[type="number"], textarea, [contenteditable="true"], .MuiInputBase-input {
+  cursor: text !important;
 }
 
 html {
@@ -4105,6 +4151,79 @@ table.table-inbox tbody tr.checked {
   .profile-btn {
     text-align: center;
   }
+}
+
+/* Green Theme for Login */
+.green-theme .btn-primary {
+  background-color: #28a745 !important;
+  border-color: #28a745 !important;
+}
+
+.green-theme .btn-primary:hover,
+.green-theme .btn-primary:focus,
+.green-theme .btn-primary:active {
+  background-color: #218838 !important;
+  border-color: #1e7e34 !important;
+}
+
+.green-theme h1 {
+  color: #28a745;
+}
+
+.green-theme .form-control:focus {
+  border-color: #28a745 !important;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+}
+
+.green-theme .loginbox .login-left {
+  background: linear-gradient(180deg, #28a745, #3eb75e) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+}
+
+.green-theme .loginbox .login-left .founder-content h2 {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #fff;
+  padding-bottom: 10px;
+  display: inline-block;
+}
+
+.green-theme .loginbox .login-left .founder-content p {
+  font-size: 18px;
+  opacity: 0.9;
+}
+
+@media (max-width: 767px) {
+  .green-theme .loginbox .login-left {
+    display: none;
+  }
+}
+
+/* Fix for typing cursor/caret on click */
+body, .main-wrapper, .page-wrapper {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+
+/* Re-enable selection for inputs, textareas and specific content */
+input, textarea, [contenteditable="true"], .card-body, table {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Ensure pointers for clickable elements */
+a, button, .btn, .link, .dropdown-item, .sidebar-menu li a {
+  cursor: pointer !important;
 }
 
 /*# sourceMappingURL=custom.css.map */
